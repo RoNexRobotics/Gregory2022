@@ -1,0 +1,56 @@
+{
+  "HALProvider": {
+    "Other Devices": {
+      "Victor SPX[20]": {
+        "header": {
+          "open": true
+        }
+      },
+      "Victor SPX[21]": {
+        "header": {
+          "open": true
+        }
+      },
+      "Victor SPX[22]": {
+        "header": {
+          "open": true
+        }
+      },
+      "Victor SPX[23]": {
+        "header": {
+          "open": true
+        }
+      }
+    },
+    "PWM Outputs": {
+      "window": {
+        "visible": true
+      }
+    }
+  },
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/LiveWindow/Ungrouped/DifferentialDrive[1]": "DifferentialDrive",
+      "/LiveWindow/Ungrouped/DigitalInput[9]": "Digital Input",
+      "/LiveWindow/Ungrouped/Spark[0]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Spark[2]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Spark[4]": "Motor Controller",
+      "/SmartDashboard/Auto choices": "String Chooser"
+    }
+  },
+  "NetworkTables": {
+    "LiveWindow": {
+      ".status": {
+        "open": false
+      },
+      "Ungrouped": {
+        "open": false
+      },
+      "open": false
+    },
+    "SmartDashboard": {
+      "open": false
+    }
+  }
+}
