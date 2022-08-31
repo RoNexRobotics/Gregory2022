@@ -4,10 +4,16 @@ import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.revrobotics.*;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 import org.photonvision.PhotonCamera;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.CvSink;
 import edu.wpi.first.cscore.CvSource;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.cscore.VideoMode.PixelFormat;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
@@ -79,10 +85,6 @@ public class Robot extends TimedRobot {
   // How far from the target we want to be
   final double GOAL_RANGE_METERS = Units.feetToMeters(3);
 
-  // Change this to match the name of your camera
-  // PhotonCamera camera = new PhotonCamera("camera1");
-  // CameraServer server;
-
   // PID constants should be tuned per robot
   final double P_GAIN = 0.1;
   final double D_GAIN = 0.0;
@@ -95,8 +97,9 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
-      // server.setQuality(30);
-      // CameraServer.startAutomaticCapture();
+
+      CameraServer.startAutomaticCapture();
+
       m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
       m_chooser.addOption("My Auto", kCustomAuto);
       SmartDashboard.putData("Auto choices", m_chooser);
@@ -117,25 +120,13 @@ public class Robot extends TimedRobot {
       climbMotor = new Spark (4);
       stopLimit = new DigitalInput (9);
       ballServo = new Servo (1);
-      // Creates UsbCamera and MjpegServer [1] and connects them
-// UsbCamera usbCamera = new UsbCamera("USB Camera 0", 0);
-// MjpegServer mjpegServer1 = new MjpegServer("serve_USB Camera 0", 1181);
-// mjpegServer1.setSource(usbCamera);
-
-// Creates the CvSink and connects it to the UsbCamera
-// CvSink cvSink = new CvSink("opencv_USB Camera 0");
-// cvSink.setSource(usbCamera);
-
-// Creates the CvSource and MjpegServer [2] and connects them
-CvSource outputStream = new CvSource("Blur", PixelFormat.kMJPEG, 640, 480, 30);
-// MjpegServer mjpegServer2 = new MjpegServer("serve_Blur", 1182);
-// mjpegServer2.setSource(outputStream);
 
       //Could get these values use the Config text if you incorporate a text-reader
       autoPower = .8;
       runTime = 2;
       testNumber = 1;
       path = 1;
+
   }
 
   /**
@@ -171,11 +162,6 @@ CvSource outputStream = new CvSource("Blur", PixelFormat.kMJPEG, 640, 480, 30);
       autoTimer.start();
       startTime = Timer.getFPGATimestamp();
       System.out.println("Auto intialized");
-      // Creates the CvSink and connects it to the UsbCamera
-edu.wpi.first.cscore.CvSink cvSink = CameraServer.getVideo();
-
-// Creates the CvSource and MjpegServer [2] and connects them
-edu.wpi.first.cscore.CvSource outputStream = CameraServer.putVideo("Blur", 640, 480);
       
   }
 
@@ -244,7 +230,7 @@ edu.wpi.first.cscore.CvSource outputStream = CameraServer.putVideo("Blur", 640, 
   @Override
   public void teleopPeriodic() {
 //*****drive with right joystick
-    driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getX()*powerPercent*-1);
+    driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getZ()*powerPercent*-1);
  //***********X botton ball hit & Y button hammer stop */
  
     if (joystick.getTrigger())
@@ -285,8 +271,11 @@ edu.wpi.first.cscore.CvSource outputStream = CameraServer.putVideo("Blur", 640, 
     }
     
     // ball release with aarow pad 
-    leverPosition = xboxController.getPOV();
-    ballServo.set(leverPosition);
+    if (joystick.getRawButton(2) == true) {
+      ballServo.set(0.5);
+    } else {
+      ballServo.set(0.2);
+    }
     //*****climb motor out with A button and in with B button */
     if (xboxController.getAButton())
     {

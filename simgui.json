@@ -33,6 +33,7 @@
       "/FMSInfo": "FMSInfo",
       "/LiveWindow/Ungrouped/DifferentialDrive[1]": "DifferentialDrive",
       "/LiveWindow/Ungrouped/DigitalInput[9]": "Digital Input",
+      "/LiveWindow/Ungrouped/PIDController[1]": "PIDController",
       "/LiveWindow/Ungrouped/Spark[0]": "Motor Controller",
       "/LiveWindow/Ungrouped/Spark[2]": "Motor Controller",
       "/LiveWindow/Ungrouped/Spark[4]": "Motor Controller",
