@@ -1,28 +1,15 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
-import com.revrobotics.*;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-import org.photonvision.PhotonCamera;
 
 import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.cscore.CvSink;
-import edu.wpi.first.cscore.CvSource;
-import edu.wpi.first.cscore.UsbCamera;
-import edu.wpi.first.cscore.VideoMode.PixelFormat;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
+
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Servo;
-
-//import edu.wpi.first.wpilibj.Spark;
-
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
@@ -31,9 +18,6 @@ import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-// import edu.wpi.first.cameraserver.CameraServer;
-// import edu.wpi.first.wpilibj.TimedRobot;
-// import edu.wpi.first.cscore.*;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -82,14 +66,13 @@ public class Robot extends TimedRobot {
   // Angle between horizontal and the camera.
   final double CAMERA_PITCH_RADIANS = Units.degreesToRadians(0);
 
-  // How far from the target we want to be
+  // How far from the target we want to be.
   final double GOAL_RANGE_METERS = Units.feetToMeters(3);
 
-  // PID constants should be tuned per robot
+  // PID constants should be tuned per robot.
   final double P_GAIN = 0.1;
   final double D_GAIN = 0.0;
   PIDController controller = new PIDController(P_GAIN, 0, D_GAIN);
-
 
   /**
    * This function is run when the robot is first started up and should be
@@ -104,9 +87,9 @@ public class Robot extends TimedRobot {
       m_chooser.addOption("My Auto", kCustomAuto);
       SmartDashboard.putData("Auto choices", m_chooser);
       xboxController = new XboxController(0);
-      joystick = new Joystick (0);
-      leftFrontMotor =  new WPI_VictorSPX(22);
-      leftBackMotor =  new WPI_VictorSPX(23);
+      joystick = new Joystick(0);
+      leftFrontMotor = new WPI_VictorSPX(22);
+      leftBackMotor = new WPI_VictorSPX(23);
       leftDrive = new MotorControllerGroup(leftFrontMotor, leftBackMotor);
       rightFrontMotor = new WPI_VictorSPX(20);
       rightBackMotor = new WPI_VictorSPX(21);
@@ -118,10 +101,10 @@ public class Robot extends TimedRobot {
       leftDrive.setInverted(true);
       throwMotor = new Spark(0); 
       climbMotor = new Spark (4);
-      stopLimit = new DigitalInput (9);
-      ballServo = new Servo (1);
+      stopLimit = new DigitalInput(9);
+      ballServo = new Servo(1);
 
-      //Could get these values use the Config text if you incorporate a text-reader
+      // Could get these values use the Config text if you incorporate a text-reader.
       autoPower = .8;
       runTime = 2;
       testNumber = 1;
@@ -175,28 +158,26 @@ public class Robot extends TimedRobot {
 
     var deltaTime = autoTime - startTime;
 
-
-
     if (deltaTime < 1.5)
     {
-      // System.out.println ("auto is working");
-      driveTrain.arcadeDrive (.6, 0.0);
+      // System.out.println("auto is working");
+      driveTrain.arcadeDrive(.6, 0.0);
     } else 
     {
-      // System.out.println ("auto is done");
-      driveTrain.arcadeDrive (0, 0);
+      // System.out.println("auto is done");
+      driveTrain.arcadeDrive(0, 0);
     } 
     if (deltaTime > 1.5 && deltaTime < 2.5)
     {
       throwMotor.set(1);
     } else
     {
-      throwMotor.set (.1);
+      throwMotor.set(.1);
     }
 
     if (stopLimit.get())
     {
-      throwMotor.set (0);
+      throwMotor.set(0);
     }
 
     // if (deltaTime > 3 && deltaTime < 4.5)
@@ -229,7 +210,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-//*****drive with right joystick
+    // Joystick drive.
     driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getZ()*powerPercent*-1);
  //***********X botton ball hit & Y button hammer stop */
  
@@ -271,17 +252,17 @@ public class Robot extends TimedRobot {
     }
     
     // ball release with aarow pad 
-    if (joystick.getRawButton(2) == true) {
+    if (joystick.getRawButton(2)) {
       ballServo.set(0.5);
     } else {
       ballServo.set(0.2);
     }
     //*****climb motor out with A button and in with B button */
-    if (xboxController.getAButton())
+    if (xboxController.getAButton()) // TODO: Change this to joystick
     {
       climbMotor.set(1);
       
-    }else if (xboxController.getBButton())
+    }else if (xboxController.getBButton()) // TODO: Change this to joystick
     {
       climbMotor.set(-2);
       
