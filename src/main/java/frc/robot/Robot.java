@@ -2,11 +2,19 @@ package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 
-import edu.wpi.first.cameraserver.CameraServer;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.CvSink;
+import edu.wpi.first.cscore.CvSource;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
-
+import edu.wpi.first.wpilibj.ADIS16448_IMU;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Servo;
@@ -14,8 +22,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
+import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -30,7 +40,6 @@ public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
-  private XboxController xboxController;
   private Joystick joystick;
   private DifferentialDrive driveTrain;
   private MotorControllerGroup leftDrive;
@@ -38,6 +47,7 @@ public class Robot extends TimedRobot {
   private Timer autoTimer;
   private Timer m_timer;
   private double startTime;
+  private ADXRS450_Gyro gyro;
   boolean TMOnOff = false;
   double autoPower;
   double runTime;
@@ -74,6 +84,8 @@ public class Robot extends TimedRobot {
   final double D_GAIN = 0.0;
   PIDController controller = new PIDController(P_GAIN, 0, D_GAIN);
 
+  Thread m_visionThread;
+
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
@@ -81,12 +93,47 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
 
-      CameraServer.startAutomaticCapture();
+      m_visionThread =
+        new Thread(
+            () -> {
+              // Get the UsbCamera from CameraServer
+              UsbCamera camera = CameraServer.startAutomaticCapture();
+              // Set the resolution
+              camera.setResolution(640, 480);
+
+              // Get a CvSink. This will capture Mats from the camera
+              CvSink cvSink = CameraServer.getVideo();
+              // Setup a CvSource. This will send images back to the Dashboard
+              CvSource outputStream = CameraServer.putVideo("Rectangle", 640, 480);
+
+              // Mats are very memory expensive. Lets reuse this Mat.
+              Mat mat = new Mat();
+
+              // This cannot be 'true'. The program will never exit if it is. This
+              // lets the robot stop this thread when restarting robot code or
+              // deploying.
+              while (!Thread.interrupted()) {
+                // Tell the CvSink to grab a frame from the camera and put it
+                // in the source mat.  If there is an error notify the output.
+                if (cvSink.grabFrame(mat) == 0) {
+                  // Send the output the error.
+                  outputStream.notifyError(cvSink.getError());
+                  // skip the rest of the current iteration
+                  continue;
+                }
+                // Put a rectangle on the image
+                Imgproc.rectangle(
+                    mat, new Point(100, 100), new Point(400, 400), new Scalar(255, 255, 255), 5);
+                // Give the output stream a new image to display
+                outputStream.putFrame(mat);
+              }
+            });
+      m_visionThread.setDaemon(true);
+      m_visionThread.start();
 
       m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
       m_chooser.addOption("My Auto", kCustomAuto);
       SmartDashboard.putData("Auto choices", m_chooser);
-      xboxController = new XboxController(0);
       joystick = new Joystick(0);
       leftFrontMotor = new WPI_VictorSPX(22);
       leftBackMotor = new WPI_VictorSPX(23);
@@ -98,9 +145,10 @@ public class Robot extends TimedRobot {
       driveTrain.setSafetyEnabled(false);
       autoTimer = new Timer();
       m_timer = new Timer();
+      gyro = new ADXRS450_Gyro();
       leftDrive.setInverted(true);
       throwMotor = new Spark(0); 
-      climbMotor = new Spark (4);
+      climbMotor = new Spark(9);
       stopLimit = new DigitalInput(9);
       ballServo = new Servo(1);
 
@@ -258,17 +306,20 @@ public class Robot extends TimedRobot {
       ballServo.set(0.2);
     }
     //*****climb motor out with A button and in with B button */
-    if (xboxController.getAButton()) // TODO: Change this to joystick
+    if (joystick.getRawButton(5))
     {
       climbMotor.set(1);
       
-    }else if (xboxController.getBButton()) // TODO: Change this to joystick
+    }else if (joystick.getRawButton(3))
     {
       climbMotor.set(-2);
       
     }else{
       climbMotor.set(0);
     }
+
+    // TODO: Turn this into something cool. 
+    //System.out.println(gyro.getRotation2d());
   }
 
   /**
