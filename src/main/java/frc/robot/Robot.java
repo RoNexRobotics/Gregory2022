@@ -93,44 +93,6 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
 
-      m_visionThread =
-        new Thread(
-            () -> {
-              // Get the UsbCamera from CameraServer
-              UsbCamera camera = CameraServer.startAutomaticCapture();
-              // Set the resolution
-              camera.setResolution(640, 480);
-
-              // Get a CvSink. This will capture Mats from the camera
-              CvSink cvSink = CameraServer.getVideo();
-              // Setup a CvSource. This will send images back to the Dashboard
-              CvSource outputStream = CameraServer.putVideo("Rectangle", 640, 480);
-
-              // Mats are very memory expensive. Lets reuse this Mat.
-              Mat mat = new Mat();
-
-              // This cannot be 'true'. The program will never exit if it is. This
-              // lets the robot stop this thread when restarting robot code or
-              // deploying.
-              while (!Thread.interrupted()) {
-                // Tell the CvSink to grab a frame from the camera and put it
-                // in the source mat.  If there is an error notify the output.
-                if (cvSink.grabFrame(mat) == 0) {
-                  // Send the output the error.
-                  outputStream.notifyError(cvSink.getError());
-                  // skip the rest of the current iteration
-                  continue;
-                }
-                // Put a rectangle on the image
-                Imgproc.rectangle(
-                    mat, new Point(100, 100), new Point(400, 400), new Scalar(255, 255, 255), 5);
-                // Give the output stream a new image to display
-                outputStream.putFrame(mat);
-              }
-            });
-      m_visionThread.setDaemon(true);
-      m_visionThread.start();
-
       m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
       m_chooser.addOption("My Auto", kCustomAuto);
       SmartDashboard.putData("Auto choices", m_chooser);
@@ -278,7 +240,7 @@ public class Robot extends TimedRobot {
       }
       if (stopLimit.get())
       {
-        throwMotor.set (0);
+        throwMotor.set(0);
         m_timer.stop();
         m_timer.reset();
       }
@@ -317,9 +279,6 @@ public class Robot extends TimedRobot {
     }else{
       climbMotor.set(0);
     }
-
-    // TODO: Turn this into something cool. 
-    //System.out.println(gyro.getRotation2d());
   }
 
   /**
@@ -346,6 +305,8 @@ public class Robot extends TimedRobot {
       leftFrontMotor.set(0);
       rightBackMotor.set(0);
       leftBackMotor.set(0);
+
+      gyro.reset();
   }
 
   /**
@@ -353,6 +314,14 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
-   
+    if (joystick.getTrigger()) {
+      if (gyro.getRotation2d().getDegrees() < 90) {
+        driveTrain.arcadeDrive(0, -0.7*powerPercent*-1);
+      } else {
+        driveTrain.arcadeDrive(-0.6*powerPercent, 0);
+      }
+    } else {
+      driveTrain.arcadeDrive(0, 0);
+    }
   }
 }
