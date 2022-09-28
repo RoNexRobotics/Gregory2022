@@ -1,6 +1,7 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
+import com.kauailabs.navx.frc.AHRS;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -20,12 +21,12 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
-import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -48,6 +49,7 @@ public class Robot extends TimedRobot {
   private Timer m_timer;
   private double startTime;
   private ADXRS450_Gyro gyro;
+  private AHRS coolGyro;
   boolean TMOnOff = false;
   double autoPower;
   double runTime;
@@ -72,6 +74,7 @@ public class Robot extends TimedRobot {
   final int TELEOPCORRECTION = -1;
   final double CAMERA_HEIGHT_METERS = Units.inchesToMeters(24);
   final double TARGET_HEIGHT_METERS = Units.feetToMeters(5);
+  boolean ifDetected;
 
   // Angle between horizontal and the camera.
   final double CAMERA_PITCH_RADIANS = Units.degreesToRadians(0);
@@ -108,11 +111,13 @@ public class Robot extends TimedRobot {
       autoTimer = new Timer();
       m_timer = new Timer();
       gyro = new ADXRS450_Gyro();
+      coolGyro = new AHRS(SerialPort.Port.kUSB);
       leftDrive.setInverted(true);
       throwMotor = new Spark(0); 
       climbMotor = new Spark(9);
       stopLimit = new DigitalInput(9);
       ballServo = new Servo(1);
+      ifDetected = false;
 
       // Could get these values use the Config text if you incorporate a text-reader.
       autoPower = .8;
@@ -222,28 +227,26 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     // Joystick drive.
     driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getZ()*powerPercent*-1);
- //***********X botton ball hit & Y button hammer stop */
- 
-    if (joystick.getTrigger())
-    {
-      m_timer.reset();
-      m_timer.start();
+
+    if (joystick.getTrigger()) {
       throwMotor.set(1);
-    }
-    if (m_timer.get()>.1)
-    {
-      throwMotor.set(.115);
-      try {
-        Thread.sleep(150);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-      if (stopLimit.get())
-      {
+      ifDetected = false;
+    } else {
+      if (!stopLimit.get()) {
+        if (!ifDetected) {
+          throwMotor.set(-0.2);
+        }
+      } else {
+        throwMotor.set(0.1);
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
         throwMotor.set(0);
-        m_timer.stop();
-        m_timer.reset();
+        ifDetected = true;
       }
+    }
     
     // if (joystick.getRawButtonPressed(2))
     // {
@@ -259,7 +262,8 @@ public class Robot extends TimedRobot {
     //  {
     //     throwMotor.set(0);
     //  }
-    }
+    
+    // }
     
     // ball release with aarow pad 
     if (joystick.getRawButton(2)) {
@@ -307,6 +311,8 @@ public class Robot extends TimedRobot {
       leftBackMotor.set(0);
 
       gyro.reset();
+
+      coolGyro.calibrate();
   }
 
   /**
@@ -314,14 +320,16 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
-    if (joystick.getTrigger()) {
-      if (gyro.getRotation2d().getDegrees() < 90) {
-        driveTrain.arcadeDrive(0, -0.7*powerPercent*-1);
-      } else {
-        driveTrain.arcadeDrive(-0.6*powerPercent, 0);
-      }
-    } else {
-      driveTrain.arcadeDrive(0, 0);
-    }
+    // if (joystick.getTrigger()) {
+    //   if (gyro.getRotation2d().getDegrees() < 90) {
+    //     driveTrain.arcadeDrive(0, -0.7*powerPercent*-1);
+    //   } else {
+    //     driveTrain.arcadeDrive(-0.6*powerPercent, 0);
+    //   }
+    // } else {
+    //   driveTrain.arcadeDrive(0, 0);
+    // }
+
+  // System.out.println(coolGyro.getVelocityX());
   }
 }
