@@ -3,28 +3,16 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.kauailabs.navx.frc.AHRS;
 
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
-import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.cscore.CvSink;
-import edu.wpi.first.cscore.CvSource;
-import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.ADIS16448_IMU;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.SerialPort;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -49,7 +37,7 @@ public class Robot extends TimedRobot {
   private Timer m_timer;
   private double startTime;
   private ADXRS450_Gyro gyro;
-  private AHRS coolGyro;
+  private AHRS navX;
   boolean TMOnOff = false;
   double autoPower;
   double runTime;
@@ -87,8 +75,6 @@ public class Robot extends TimedRobot {
   final double D_GAIN = 0.0;
   PIDController controller = new PIDController(P_GAIN, 0, D_GAIN);
 
-  Thread m_visionThread;
-
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
@@ -111,7 +97,7 @@ public class Robot extends TimedRobot {
       autoTimer = new Timer();
       m_timer = new Timer();
       gyro = new ADXRS450_Gyro();
-      coolGyro = new AHRS(SerialPort.Port.kUSB);
+      navX = new AHRS(SerialPort.Port.kMXP);
       leftDrive.setInverted(true);
       throwMotor = new Spark(0); 
       climbMotor = new Spark(9);
@@ -169,7 +155,7 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     double autoTime = Timer.getFPGATimestamp();
-    System.out.println ("begining of auto");
+    System.out.println("begining of auto");
 
     var deltaTime = autoTime - startTime;
 
@@ -202,13 +188,6 @@ public class Robot extends TimedRobot {
     // {
     //   throwMotor.set (0);
     // }
-
-
-    
-    // //***********X botton ball hit & Y button hammer stop */
-    
-    
-        
   }
   
       
@@ -248,30 +227,14 @@ public class Robot extends TimedRobot {
       }
     }
     
-    // if (joystick.getRawButtonPressed(2))
-    // {
-    //   throwMotor.set(-.15);
-    //   TMOnOff = !TMOnOff;
-    //   System.out.println ("Y button is " + TMOnOff);
-    // } else {
-    //   throwMotor.set(0);
-    // }
-    // if (TMOnOff == true) {%
-    //    throwMotor.set(-.15);
-    //  } else
-    //  {
-    //     throwMotor.set(0);
-    //  }
-    
-    // }
-    
-    // ball release with aarow pad 
+    // Ball release with button 2
     if (joystick.getRawButton(2)) {
       ballServo.set(0.5);
     } else {
       ballServo.set(0.2);
     }
-    //*****climb motor out with A button and in with B button */
+
+    // Climb motor
     if (joystick.getRawButton(5))
     {
       climbMotor.set(1);
@@ -309,10 +272,6 @@ public class Robot extends TimedRobot {
       leftFrontMotor.set(0);
       rightBackMotor.set(0);
       leftBackMotor.set(0);
-
-      gyro.reset();
-
-      coolGyro.calibrate();
   }
 
   /**
@@ -320,16 +279,5 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
-    // if (joystick.getTrigger()) {
-    //   if (gyro.getRotation2d().getDegrees() < 90) {
-    //     driveTrain.arcadeDrive(0, -0.7*powerPercent*-1);
-    //   } else {
-    //     driveTrain.arcadeDrive(-0.6*powerPercent, 0);
-    //   }
-    // } else {
-    //   driveTrain.arcadeDrive(0, 0);
-    // }
-
-  // System.out.println(coolGyro.getVelocityX());
   }
 }
