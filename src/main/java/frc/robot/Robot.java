@@ -207,16 +207,17 @@ public class Robot extends TimedRobot {
     // Joystick drive.
     driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getZ()*powerPercent*-1);
 
+    // Throw motor.
     if (joystick.getTrigger()) {
       throwMotor.set(1);
       ifDetected = false;
     } else {
       if (!stopLimit.get()) {
         if (!ifDetected) {
-          throwMotor.set(-0.2);
+          throwMotor.set(0.2);
         }
       } else {
-        throwMotor.set(0.1);
+        throwMotor.set(-0.1);
         try {
           Thread.sleep(50);
         } catch (InterruptedException e) {
@@ -237,9 +238,10 @@ public class Robot extends TimedRobot {
     // Climb motor
     if (joystick.getRawButton(5))
     {
+      System.out.println("Button 5 pressed.");
       climbMotor.set(1);
       
-    }else if (joystick.getRawButton(3))
+    } else if (joystick.getRawButton(3))
     {
       climbMotor.set(-2);
       
@@ -272,6 +274,8 @@ public class Robot extends TimedRobot {
       leftFrontMotor.set(0);
       rightBackMotor.set(0);
       leftBackMotor.set(0);
+
+      gyro.calibrate();
   }
 
   /**
@@ -279,5 +283,6 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
+    System.out.println(gyro.getRotation2d().getDegrees());
   }
 }
