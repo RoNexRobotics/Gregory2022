@@ -1,22 +1,17 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
-import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -26,37 +21,31 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * project.
  */
 public class Robot extends TimedRobot {
-  private static final String kDefaultAuto = "Default";
-  private static final String kCustomAuto = "My Auto";
-  private final SendableChooser<String> m_chooser = new SendableChooser<>();
-  private Joystick joystick;
-  private DifferentialDrive driveTrain;
-  private MotorControllerGroup leftDrive;
-  private MotorControllerGroup rightDrive;
-  private Timer autoTimer;
-  private Timer m_timer;
-  private double startTime;
-  private ADXRS450_Gyro gyro;
-  private AHRS navX;
+  private Joystick m_joystick;
+  private DifferentialDrive m_driveTrain;
+  private MotorControllerGroup m_leftDrive;
+  private MotorControllerGroup m_rightDrive;
+  private Timer m_autoTimer;
+  private double m_startTime;
+  final double kAutoPower = 0.8;
+  final double kPowerPercent = 0.7;
+  final int path = 1;
   boolean TMOnOff = false;
-  double autoPower;
-  double runTime;
+  double runTime = 2;
   double cornerTime;
   double driveSpeed;
   double cornerSpeed;
-  int path;
   double blocks;
-  double powerPercent=.7;
-  WPI_VictorSPX leftFrontMotor; 
-  WPI_VictorSPX leftBackMotor; 
-  WPI_VictorSPX rightFrontMotor; 
-  WPI_VictorSPX rightBackMotor; 
-  Spark throwMotor;
-  Spark climbMotor;
-  DigitalInput stopLimit;
-  Servo ballServo;
+  WPI_VictorSPX m_leftFrontMotor;
+  WPI_VictorSPX m_leftBackMotor;
+  WPI_VictorSPX m_rightFrontMotor;
+  WPI_VictorSPX m_rightBackMotor;
+  Spark m_throwMotor;
+  Spark m_climbMotor;
+  DigitalInput m_throwStopLimit;
+  Servo m_ballServo;
   int leverPosition;
-  int testNumber;
+  int testNumber = 1;
   final int RIGHTDIRECTION = -1;
   final int LEFTDIRECTION = 1;
   final int TELEOPCORRECTION = -1;
@@ -81,36 +70,22 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
-
-      m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
-      m_chooser.addOption("My Auto", kCustomAuto);
-      SmartDashboard.putData("Auto choices", m_chooser);
-      joystick = new Joystick(0);
-      leftFrontMotor = new WPI_VictorSPX(22);
-      leftBackMotor = new WPI_VictorSPX(23);
-      leftDrive = new MotorControllerGroup(leftFrontMotor, leftBackMotor);
-      rightFrontMotor = new WPI_VictorSPX(20);
-      rightBackMotor = new WPI_VictorSPX(21);
-      rightDrive = new MotorControllerGroup(rightFrontMotor, rightBackMotor);
-      driveTrain = new DifferentialDrive(leftDrive, rightDrive);
-      driveTrain.setSafetyEnabled(false);
-      autoTimer = new Timer();
-      m_timer = new Timer();
-      gyro = new ADXRS450_Gyro();
-      navX = new AHRS(SerialPort.Port.kMXP);
-      leftDrive.setInverted(true);
-      throwMotor = new Spark(0); 
-      climbMotor = new Spark(9);
-      stopLimit = new DigitalInput(9);
-      ballServo = new Servo(1);
-      ifDetected = false;
-
-      // Could get these values use the Config text if you incorporate a text-reader.
-      autoPower = .8;
-      runTime = 2;
-      testNumber = 1;
-      path = 1;
-
+    m_joystick = new Joystick(0);
+    m_leftFrontMotor = new WPI_VictorSPX(22);
+    m_leftBackMotor = new WPI_VictorSPX(23);
+    m_leftDrive = new MotorControllerGroup(m_leftFrontMotor, m_leftBackMotor);
+    m_rightFrontMotor = new WPI_VictorSPX(20);
+    m_rightBackMotor = new WPI_VictorSPX(21);
+    m_rightDrive = new MotorControllerGroup(m_rightFrontMotor, m_rightBackMotor);
+    m_driveTrain = new DifferentialDrive(m_leftDrive, m_rightDrive);
+    m_driveTrain.setSafetyEnabled(false);
+    m_autoTimer = new Timer();
+    m_leftDrive.setInverted(true);
+    m_throwMotor = new Spark(0);
+    m_climbMotor = new Spark(9);
+    m_throwStopLimit = new DigitalInput(9);
+    m_ballServo = new Servo(1);
+    ifDetected = false;
   }
 
   /**
@@ -118,7 +93,8 @@ public class Robot extends TimedRobot {
    * this for items like diagnostics that you want ran during disabled,
    * autonomous, teleoperated and test.
    *
-   * <p>This runs after the mode specific periodic functions, but before
+   * <p>
+   * This runs after the mode specific periodic functions, but before
    * LiveWindow and SmartDashboard integrated updating.
    */
   @Override
@@ -132,21 +108,18 @@ public class Robot extends TimedRobot {
    * LabVIEW Dashboard, remove all of the chooser code and uncomment the
    * getString line to get the auto name from the text box below the Gyro
    *
-   * <p>You can add additional auto modes by adding additional comparisons to
+   * <p>
+   * You can add additional auto modes by adding additional comparisons to
    * the switch structure below with additional strings. If using the
    * SendableChooser make sure to add them to the chooser code above as well.
    */
   @Override
   public void autonomousInit() {
-      //m_autoSelected = m_chooser.getSelected();
-      // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-      //System.out.println("Auto selected: " + m_autoSelected);
-      throwMotor.set(0);
-      autoTimer.reset();
-      autoTimer.start();
-      startTime = Timer.getFPGATimestamp();
-      System.out.println("Auto intialized");
-      
+    m_throwMotor.set(0);
+    m_autoTimer.reset();
+    m_autoTimer.start();
+    m_startTime = Timer.getFPGATimestamp();
+    System.out.println("Auto intialized");
   }
 
   /**
@@ -154,49 +127,43 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void autonomousPeriodic() {
+    System.out.println("Starting auto loop");
     double autoTime = Timer.getFPGATimestamp();
-    System.out.println("begining of auto");
 
-    var deltaTime = autoTime - startTime;
+    var deltaTime = autoTime - m_startTime;
 
-    if (deltaTime < 1.5)
-    {
+    if (deltaTime < 1.5) {
       // System.out.println("auto is working");
-      driveTrain.arcadeDrive(.6, 0.0);
-    } else 
-    {
+      m_driveTrain.arcadeDrive(.6, 0.0);
+    } else {
       // System.out.println("auto is done");
-      driveTrain.arcadeDrive(0, 0);
-    } 
-    if (deltaTime > 1.5 && deltaTime < 2.5)
-    {
-      throwMotor.set(1);
-    } else
-    {
-      throwMotor.set(.1);
+      m_driveTrain.arcadeDrive(0, 0);
+    }
+    if (deltaTime > 1.5 && deltaTime < 2.5) {
+      // m_throwMotor.set(1);
+    } else {
+      // m_throwMotor.set(.1);
     }
 
-    if (stopLimit.get())
-    {
-      throwMotor.set(0);
+    if (m_throwStopLimit.get()) {
+      // m_throwMotor.set(0);
     }
 
     // if (deltaTime > 3 && deltaTime < 4.5)
     // {
-    //   throwMotor.set(1);
+    // throwMotor.set(1);
     // } else
     // {
-    //   throwMotor.set (0);
+    // throwMotor.set (0);
     // }
   }
-  
-      
+
   /**
    * This function is called once when teleop is enabled.
    */
   @Override
   public void teleopInit() {
-    throwMotor.set(0);
+    m_throwMotor.set(0);
   }
 
   /**
@@ -205,49 +172,47 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // Joystick drive.
-    driveTrain.arcadeDrive(joystick.getY()*powerPercent, joystick.getZ()*powerPercent*-1);
+    m_driveTrain.arcadeDrive(m_joystick.getY() * kPowerPercent, m_joystick.getZ() * kPowerPercent * -1);
 
     // Throw motor.
-    if (joystick.getTrigger()) {
-      throwMotor.set(1);
-      ifDetected = false;
-    } else {
-      if (!stopLimit.get()) {
-        if (!ifDetected) {
-          throwMotor.set(0.2);
-        }
-      } else {
-        throwMotor.set(-0.1);
-        try {
-          Thread.sleep(50);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        throwMotor.set(0);
-        ifDetected = true;
-      }
-    }
-    
-    // Ball release with button 2
-    if (joystick.getRawButton(2)) {
-      ballServo.set(0.5);
-    } else {
-      ballServo.set(0.2);
-    }
+    // if (m_joystick.getTrigger()) {
+    //   m_throwMotor.set(1);
+    //   ifDetected = false;
+    // } else {
+    //   if (!m_throwStopLimit.get()) {
+    //     if (!ifDetected) {
+    //       m_throwMotor.set(0.2);
+    //     }
+    //   } else {
+    //     m_throwMotor.set(-0.1);
+    //     try {
+    //       Thread.sleep(50);
+    //     } catch (InterruptedException e) {
+    //       e.printStackTrace();
+    //     }
+    //     m_throwMotor.set(0);
+    //     ifDetected = true;
+    //   }
+    // }
 
-    // Climb motor
-    if (joystick.getRawButton(5))
-    {
-      System.out.println("Button 5 pressed.");
-      climbMotor.set(1);
-      
-    } else if (joystick.getRawButton(3))
-    {
-      climbMotor.set(-2);
-      
-    }else{
-      climbMotor.set(0);
-    }
+    // // Ball release with button 2
+    // if (m_joystick.getRawButton(2)) {
+    //   m_ballServo.set(0.5);
+    // } else {
+    //   m_ballServo.set(0.2);
+    // }
+
+    // // Climb motor
+    // if (m_joystick.getRawButton(5)) {
+    //   System.out.println("Button 5 pressed.");
+    //   m_climbMotor.set(1);
+
+    // } else if (m_joystick.getRawButton(3)) {
+    //   m_climbMotor.set(-2);
+
+    // } else {
+    //   m_climbMotor.set(0);
+    // }
   }
 
   /**
@@ -255,7 +220,6 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void disabledInit() {
-    // stopLimit.close();
   }
 
   /**
@@ -270,12 +234,6 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testInit() {
-      rightFrontMotor.set(0);
-      leftFrontMotor.set(0);
-      rightBackMotor.set(0);
-      leftBackMotor.set(0);
-
-      gyro.calibrate();
   }
 
   /**
@@ -283,6 +241,5 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
-    System.out.println(gyro.getRotation2d().getDegrees());
   }
 }

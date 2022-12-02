@@ -39,17 +39,8 @@
       "/LiveWindow/Ungrouped/Spark[2]": "Motor Controller",
       "/LiveWindow/Ungrouped/Spark[4]": "Motor Controller",
       "/LiveWindow/Ungrouped/Spark[9]": "Motor Controller",
+      "/LiveWindow/Ungrouped/navX-Sensor[1]": "Gyro",
       "/SmartDashboard/Auto choices": "String Chooser"
-    }
-  },
-  "NetworkTables": {
-    "LiveWindow": {
-      ".status": {
-        "open": false
-      },
-      "Ungrouped": {
-        "open": false
-      }
     }
   }
 }
