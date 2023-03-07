@@ -1,11 +1,13 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
+import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -21,6 +23,7 @@ import edu.wpi.first.wpilibj.motorcontrol.Spark;
  * project.
  */
 public class Robot extends TimedRobot {
+  private AHRS m_navX;
   private Joystick m_joystick;
   private DifferentialDrive m_driveTrain;
   private MotorControllerGroup m_leftDrive;
@@ -28,7 +31,7 @@ public class Robot extends TimedRobot {
   private Timer m_autoTimer;
   private double m_startTime;
   final double kAutoPower = 0.8;
-  final double kPowerPercent = 0.7;
+  final double kPowerPercent = 0.9; // 0.7
   final int path = 1;
   boolean TMOnOff = false;
   double runTime = 2;
@@ -51,7 +54,9 @@ public class Robot extends TimedRobot {
   final int TELEOPCORRECTION = -1;
   final double CAMERA_HEIGHT_METERS = Units.inchesToMeters(24);
   final double TARGET_HEIGHT_METERS = Units.feetToMeters(5);
-  boolean ifDetected;
+  boolean ifDetected = false;
+  boolean initialHeadingCalibrated = false;
+  float initialHeading;
 
   // Angle between horizontal and the camera.
   final double CAMERA_PITCH_RADIANS = Units.degreesToRadians(0);
@@ -70,6 +75,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
+    m_navX = new AHRS(SPI.Port.kMXP);
     m_joystick = new Joystick(0);
     m_leftFrontMotor = new WPI_VictorSPX(22);
     m_leftBackMotor = new WPI_VictorSPX(23);
@@ -82,10 +88,12 @@ public class Robot extends TimedRobot {
     m_autoTimer = new Timer();
     m_leftDrive.setInverted(true);
     m_throwMotor = new Spark(0);
-    m_climbMotor = new Spark(9);
+    m_climbMotor = new Spark(3);
     m_throwStopLimit = new DigitalInput(9);
     m_ballServo = new Servo(1);
-    ifDetected = false;
+    
+    m_driveTrain.setDeadband(0.1);
+    m_navX.calibrate();
   }
 
   /**
@@ -172,47 +180,67 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // Joystick drive.
-    m_driveTrain.arcadeDrive(m_joystick.getY() * kPowerPercent, m_joystick.getZ() * kPowerPercent * -1);
+    m_driveTrain.arcadeDrive(m_joystick.getY() * kPowerPercent, m_joystick.getZ() * kPowerPercent * -0.9);
+
+    
+    // Automated 360 button :D
+    // if (m_joystick.getRawButton(7) && !initialHeadingCalibrated) {
+    //   m_navX.reset();
+    //   initialHeading = m_navX.getYaw();
+    //   initialHeadingCalibrated = true;
+    // }
+
+    // System.out.println("Initial Heading: " + initialHeading);
+    System.out.println("Current Heading: " + m_navX.getYaw());
+    
+    if (initialHeadingCalibrated) {
+      if (initialHeading - m_navX.getYaw() < 350) {
+        m_driveTrain.arcadeDrive(0, 0.5);
+      } else {
+        m_driveTrain.stopMotor();
+        initialHeadingCalibrated = false;
+      }
+    }
 
     // Throw motor.
-    // if (m_joystick.getTrigger()) {
-    //   m_throwMotor.set(1);
-    //   ifDetected = false;
-    // } else {
-    //   if (!m_throwStopLimit.get()) {
-    //     if (!ifDetected) {
-    //       m_throwMotor.set(0.2);
-    //     }
-    //   } else {
-    //     m_throwMotor.set(-0.1);
-    //     try {
-    //       Thread.sleep(50);
-    //     } catch (InterruptedException e) {
-    //       e.printStackTrace();
-    //     }
-    //     m_throwMotor.set(0);
-    //     ifDetected = true;
-    //   }
-    // }
+    if (m_joystick.getTrigger()) {
+    m_throwMotor.set(1);
+    ifDetected = false;
+    } else {
+    if (!m_throwStopLimit.get()) {
+    if (!ifDetected) {
+    m_throwMotor.set(0.2);
+    }
+    } else {
+    m_throwMotor.set(-0.1);
+    try {
+    Thread.sleep(50);
+    } catch (InterruptedException e) {
+    e.printStackTrace();
+    }
+    m_throwMotor.set(0);
+    ifDetected = true;
+    }
+    }
 
-    // // Ball release with button 2
-    // if (m_joystick.getRawButton(2)) {
-    //   m_ballServo.set(0.5);
-    // } else {
-    //   m_ballServo.set(0.2);
-    // }
+    // Ball release with button 2
+    if (m_joystick.getRawButton(2)) {
+    m_ballServo.set(0.5);
+    } else {
+    m_ballServo.set(0.2);
+    }
 
-    // // Climb motor
-    // if (m_joystick.getRawButton(5)) {
-    //   System.out.println("Button 5 pressed.");
-    //   m_climbMotor.set(1);
+    // Climb motor
+    if (m_joystick.getRawButton(5)) {
+    System.out.println("Button 5 pressed.");
+    m_climbMotor.set(1);
 
-    // } else if (m_joystick.getRawButton(3)) {
-    //   m_climbMotor.set(-2);
+    } else if (m_joystick.getRawButton(3)) {
+    m_climbMotor.set(-2);
 
-    // } else {
-    //   m_climbMotor.set(0);
-    // }
+    } else {
+    m_climbMotor.set(0);
+    }
   }
 
   /**
